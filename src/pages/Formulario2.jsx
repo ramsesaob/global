@@ -165,7 +165,7 @@ const Formulario2 = () => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                user_id: datosUsuario.user.id,
+                user_id: datosUsuario.id,
                 numero_ped: getNextNumeroPed(),
                 descripcion: motivoSeleccionado,
                 anulada: 1,
@@ -239,7 +239,7 @@ const Formulario2 = () => {
                 style={{ "width": "300px" }}
                 className="form-control mx-2"
                 type="text"
-                defaultValue={`${datosUsuario.user.nombre} `}
+                defaultValue={`${datosUsuario.nombre} `}
                 aria-label="Disabled input example"
                 disabled
                 readOnly

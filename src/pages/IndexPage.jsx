@@ -10,7 +10,10 @@ import "primereact/resources/themes/lara-light-cyan/theme.css";
 import { Button } from 'primereact/button';
 import { locale, addLocale } from 'primereact/api';
 import { es } from '../../node_modules/primelocale/es.json'; // Importar archivo JSON directamente
-
+import { createClient } from '@supabase/supabase-js';
+const supabaseUrl = 'https://psyauluoyjvrscijcafn.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const IndexPage = () => {
   const { datosUsuario } = useContext(carritoContext);
@@ -37,72 +40,84 @@ const IndexPage = () => {
   useEffect(() => {  
     const fetchAndFilterOrdenPedidos = async () => {  
       try {  
-        const response = await axios.get(`http://192.168.0.107/ped2/OrdenPedidos/page.json`);  
-        const ordenPedidos = response.data.orden;
-
-        const role = datosUsuario.user.role;  
+        const response = await fetch(`https://psyauluoyjvrscijcafn.supabase.co/rest/v1/page?select=*`, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU', // Usa tu clave API correcta aquí
+            'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU', // Usa el formato correcto para el token de autorización
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const ordenPedidos = await response.json(); // Obtén los datos JSON aquí
+  
+        const role = datosUsuario.role;  
         const filteredPedidos = ordenPedidos.filter(orden => {  
           if (role == 'admin') {  
             return true;  
           } else if (role == 'user1') {  
-            return orden.user_id == datosUsuario.user.id;  
+            return orden.user_id == datosUsuario.id;  
           } else if (role == 'user2') {  
             return true;  
+          } else if (role == 'user3') {  
+            return orden.user_id == datosUsuario.id; 
           } else {  
-            return orden.user_id == datosUsuario.user.id;  
+            return orden.user_id == datosUsuario.id;  
           }  
         });  
-  
+    
         setOrdenPedidos(ordenPedidos);  
         setFilteredOrdenPedidos(filteredPedidos);  
-     
       } catch (error) {  
         console.error('Error fetching data:', error);  
       }  
     };  
-  
+    
     fetchAndFilterOrdenPedidos();  
-  }, [datosUsuario]); 
-
-  const handleAnularPedido = async (id) => {
-    Swal.fire({
-      title: '¿Estás seguro?',
-      text: '¡No podrás revertir esto!',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, anularlo'
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const response = await fetch(`http://192.168.0.107/ped2/OrdenPedidos/anular/${id}.json`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              anulada: 1,
-              fecha_anulada: new Date().toISOString(),
-            }),
-          });
+  }, [datosUsuario]);  
   
-          if (response.ok) {
-            setOrdenPedidos(prevOrdenPedidos =>
-              prevOrdenPedidos.map(pedido =>
-                pedido.id === id ? { ...pedido, anulada: 1, fecha_anulada: new Date().toISOString() } : pedido
-              )
-            );
-            Swal.fire('Anulado', 'El pedido ha sido anulado.', 'success');
-            setTableKey(prevKey => prevKey + 1); // Forzar la actualización del DataTable
-          } else {
-            console.error('Error al anular el pedido');
-          }
-        } catch (error) {
-          console.error('Error al enviar la solicitud:', error);
-        }
-      }
-    });
+
+
+
+  const handleAnularPedido = async (id) => {  
+    Swal.fire({  
+      title: '¿Estás seguro?',  
+      text: '¡No podrás revertir esto!',  
+      icon: 'warning',  
+      showCancelButton: true,  
+      confirmButtonColor: '#3085d6',  
+      cancelButtonColor: '#d33',  
+      confirmButtonText: 'Sí, anularlo'  
+    }).then(async (result) => {  
+      if (result.isConfirmed) {  
+        try {  
+          const { data, error } = await supabase  
+            .from('orden_pedidos') // Nombre de tu tabla en Supabase  
+            .update({ anulada: 0, fecha_anulada: new Date().toISOString() }) // Campos a actualizar  
+            .eq('id', id); // Condición para identificar el registro que deseas modificar  
+  
+          if (error) {  
+            throw error; // Lanza un error si hay problema con Supabase  
+          }  
+  
+          // Si la actualización es exitosa:  
+          if (data) {  
+            setOrdenPedidos(prevOrdenPedidos =>  
+              prevOrdenPedidos.map(pedido =>  
+                pedido.id === id ? { ...pedido, anulada: 0, fecha_anulada: new Date().toISOString() } : pedido  
+              )  
+            );  
+            Swal.fire('Anulado', 'El pedido ha sido anulado correctamente', 'success');  
+            setTableKey(prevKey => prevKey + 1); // Forzar la actualización del DataTable  
+          }  
+        } catch (error) {  
+          console.error('Error al anular el pedido:', error);  
+          Swal.fire('Error', 'No se pudo anular el pedido', 'error');  
+        }  
+      }  
+    });  
   };
 
   const actionTemplate = (rowData) => (
@@ -113,11 +128,11 @@ const IndexPage = () => {
         </Link>
       </button>
       
-      {((rowData.anulada == 1 || rowData.anulada == null ) && (rowData.Status_aprobada == 'Pendiente')  && (datosUsuario.user.role == 'admin' || datosUsuario.user.role == 'user1')) && (
+      {((rowData.anulada == 1 || rowData.anulada == null ) && (rowData.status_aprobado == 'Pendiente')  && (datosUsuario.role == 'admin' || datosUsuario.role == 'user1')) && (
         <button className='btn btn-danger btn-sm' onClick={() => handleAnularPedido(rowData.id)}>Anular</button>
       )}
      
-      {((rowData.Status_aprobada != 'Procesada' )  && (rowData.anulada != 0)   && (datosUsuario.user.role == 'admin' || datosUsuario.user.role == 'user2')) && (
+      {((rowData.Status_aprobada != 'Procesada' )  && (rowData.anulada != 0)   && (datosUsuario.role == 'admin' || datosUsuario.role == 'user2')) && (
         <button className='btn btn-info btn-sm mx-2'>
           <Link style={{ textDecoration: 'none', color: 'white' }} to={`/Verificacion/${rowData.id}`}>
             <span>Verificar</span>
@@ -132,7 +147,7 @@ const IndexPage = () => {
   );
   const tipoTemplate = (rowData) => {
     if (rowData.tipo === 'P') {
-      return 'Normal'; 
+      return 'Estándar'; 
     }
     if (rowData.tipo === 'N') {
       return 'Navidad';

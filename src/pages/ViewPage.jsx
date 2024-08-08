@@ -61,7 +61,7 @@ const ViewPage = () => {
             day: 'numeric'
           
         })}`;
-          const solicitante = `Solicitante: ${ordenPedido.user.nombre}`;
+          const solicitante = `Solicitante: ${ordenPedido.nombre}`;
         
           const headers = [['ID', 'Departamento', 'Categoría', 'Código', 'Descripción', 'Cantidad']];
           const data = ordenPedido.orden_items.map(item => [
@@ -124,6 +124,9 @@ const ViewPage = () => {
               ''
             )}
             <div className='row '>
+            <div className='col-lg-6'>
+              <p className="card-text"><strong>Creado:</strong> {new Date(ordenPedido.created).toLocaleString()}</p>
+              </div>
               <div className='col-lg-6'>
               <p className="card-text"><strong>Motivo: </strong>
                           {ordenPedido.descripcion === '1' ? 'Alta Rotación' :
@@ -133,16 +136,14 @@ const ViewPage = () => {
                         </p>
               </div>
               <div className='col-lg-6 py-1'>
-              <p className="card-text"><strong>Solicitante:</strong> {ordenPedido.user.nombre}</p>
+              <p className="card-text"><strong>Solicitante:</strong> {ordenPedido.nombre}</p>
               </div>
-              <div className='col-lg-6'>
-              <p className="card-text"><strong>Creado:</strong> {new Date(ordenPedido.created).toLocaleString()}</p>
-              </div>
+             
               <div className='col-lg-6 py-1'>
               <p className="card-text"><strong>Status:</strong> {ordenPedido.Status_aprobada}</p>
               </div>
               <div className='col-lg-6'>
-              <p className="card-text"><strong>Tipo: </strong>{ordenPedido.tipo === 'P' ? ('Normal') : ('Navidad')} </p> 
+              <p className="card-text"><strong>Tipo: </strong>{ordenPedido.tipo === 'P' ? ('Estándar') : ('Navidad')} </p> 
               </div>
               
             </div>
@@ -175,7 +176,7 @@ const ViewPage = () => {
               <button className="btn btn-danger mx-2" onClick={exportToPDF}>
                 <i className=' bx bxs-file-pdf bx-md'></i> 
               </button>
-              {datosUsuario.user.role == 'admin' &&(
+              {datosUsuario.role == 'admin' &&(
                 <>
                 <ExportView1 ordenPedido={ordenPedido} id={id} />
                 <ExportView2 ordenPedido={ordenPedido} id={id} />
@@ -183,7 +184,7 @@ const ViewPage = () => {
                 </>
                 
               )}
-              {datosUsuario.user.role == 'user2' &&(
+              {datosUsuario.role == 'user2' &&(
                 <>
                 <ExportView1 ordenPedido={ordenPedido} id={id} />
                 <ExportView2 ordenPedido={ordenPedido} id={id} />

@@ -1,8 +1,6 @@
 import { Link } from "react-router-dom";
 import React from 'react';
 
-
-
 import { useEffect, useState } from "react";
 import { useNavigate} from 'react-router-dom';
 import logo from '../assets/logo.png'
@@ -66,7 +64,7 @@ const Header = () => {
         {
           validado ?
           <>
-             {datosUsuario.user.role == "admin" && (
+             {datosUsuario.role == "admin" && (
         <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
  
            
@@ -93,7 +91,7 @@ const Header = () => {
          )}
 
          
-                {datosUsuario.user.role == "user1" && (
+                {datosUsuario.role == "user1" && (
                   <ul className="navbar-nav mx-auto mb-2 mb-lg-0" >
           
                     
@@ -120,7 +118,7 @@ const Header = () => {
                   </ul>
                   )}    
 
-              {datosUsuario.user.role == "user2" && (
+              {datosUsuario.role == "user2" && (
                   <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
           
                     
@@ -140,7 +138,7 @@ const Header = () => {
         <li className="nav-item dropdown text-white" data-bs-theme="dark">
           <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           
-          <span className="mx-2 text-dark fw-bold text-white">{`${datosUsuario.user.nombre} `}</span>
+          <span className="mx-2 text-dark fw-bold text-white">{`${datosUsuario.nombre} `}</span>
           </a>
           <ul className="dropdown-menu dropdown-menu-end">
               <li><a className="dropdown-item" href="#"> Ver mi Perfil</a></li>

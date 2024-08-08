@@ -4,7 +4,10 @@ import logo2 from '../assets/logo2.png';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useContext } from "react";
 import { carritoContext } from "../contexts/carritoContext";
-
+import { createClient } from '@supabase/supabase-js';
+const supabaseUrl = 'https://psyauluoyjvrscijcafn.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const Formulario = () => {
   const location = useLocation();
@@ -16,9 +19,10 @@ const Formulario = () => {
   const [errorDescripcion, setErrorDescripcion] = useState('');
   const [fechaCreacion, setFechaCreacion] = useState('');
   const [motivoSeleccionado, setMotivoSeleccionado] = useState('');
-  const Api = 'http://192.168.0.107/ped2/OrdenPedidos/numped.json';
+  const Api = 'https://psyauluoyjvrscijcafn.supabase.co/rest/v1/numped?select=*';
   const [datos, setDatos] = useState([]);
   const navigate = useNavigate();
+  
 
   useEffect(() => {
     const today = new Date();
@@ -59,28 +63,42 @@ const Formulario = () => {
       setErrorDescripcion('Descripción no encontrada');
     }
   };
-
   const buscarDescripcion = async (serial) => {
     try {
-      const response = await fetch(`http://192.168.0.107/ped2/articulos/serial.json?codigos=${serial}`);
+      const response = await fetch(`https://psyauluoyjvrscijcafn.supabase.co/rest/v1/serial?codigo=eq.${serial}`, {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU', // Reemplaza con tu clave pública de Supabase
+          'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU', // Reemplaza con tu token de autorización
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
       const data = await response.json();
-
-      if (!data || !data.articulos || data.articulos.length === 0) {
+      console.log('Datos recibidos:', data); // Imprime los datos para depuración
+  
+      if (!data || data.length === 0) {
         throw new Error("Descripción no encontrada");
       }
-
-      const primerArticulo = data.articulos[0];
+  
+      const primerArticulo = data[0]; // Se espera un array de artículos, no un objeto con una propiedad 'articulos'
       return {
         id: primerArticulo.id,
         descripcion: primerArticulo.descripcion,
         empaque: primerArticulo.empaque,
       };
-
+  
     } catch (error) {
-      console.error("Error al buscar la descripción del producto:", error);
+      console.error('Error al obtener el total de registros:', error);
       throw error;
     }
   };
+  
+
+
 
   const handleProductChange = (index, event, field) => {
     const updatedProducts = [...productos];
@@ -127,89 +145,140 @@ const Formulario = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
   
-    // Validar la cantidad mínima (empaque) y múltiplo del empaque
     const isValid = productos.every(producto => {
-      if (!producto.cantidad || parseFloat(producto.cantidad) < parseFloat(producto.empaque)) {
+      const cantidad = parseFloat(producto.cantidad);
+      const empaque = parseFloat(producto.empaque);
+      if (!cantidad || cantidad < empaque) {
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: `La cantidad mínima para "${producto.descripcion}" es ${parseFloat(producto.empaque).toFixed(2)}`, 
+          text: `La cantidad mínima para "${producto.descripcion}" es ${empaque.toFixed(2)}`, 
         });
         return false;
-      } else if (parseFloat(producto.cantidad) % parseFloat(producto.empaque) !== 0) {
+      } else if (cantidad % empaque !== 0) {
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: `La cantidad debe ser un múltiplo de ${parseFloat(producto.empaque).toFixed(2)} para "${producto.descripcion}"`,
+          text: `La cantidad debe ser un múltiplo de ${empaque.toFixed(2)} para "${producto.descripcion}"`,
         });
         return false;
       }
       return true;
     });
   
-    if (!isValid) {
-      return;
-    }
+    if (!isValid) return;
   
     Swal.fire({
       title: "¿Desea guardar los cambios?",
       showDenyButton: true,
-     
       confirmButtonText: "Guardar",
       denyButtonText: "Cancelar"
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await fetch('http://192.168.0.107/ped2/OrdenPedidos/add.json', {
+          // Inserta una nueva orden de pedido
+          const postResponse = await fetch('https://psyauluoyjvrscijcafn.supabase.co/rest/v1/orden_pedidos', {
             method: 'POST',
             headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU',
+              'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU',
               'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
             },
             body: JSON.stringify({
-              user_id: datosUsuario.user.id,
+              user_id: datosUsuario.id,
               numero_ped: getNextNumeroPed(),
               descripcion: motivoSeleccionado,
               anulada: 1,
               tipo: 'P',
-              Status_aprobada: 'Pendiente', // Pendiente,
-              productos: productos.map(producto => ({
-                articulo_id: producto.id,
-                cantidad: producto.cantidad,
-                comentario: producto.comentario,
-                validado: '0',
-              }))
-            }),
+              status_aprobado: 'Pendiente' 
+            })
           });
   
-          if (response.ok) {
+          if (!postResponse.ok) {
+            throw new Error(`HTTP error! Status: ${postResponse.status}`);
+          }
+  
+          const postResponseText = await postResponse.text();
+          const ordenPedido = postResponseText ? JSON.parse(postResponseText) : [];
+  
+          if (ordenPedido && ordenPedido.length > 0) {
+            const ordenPedidoId = ordenPedido[0].id;
+  
+            // Inserta los artículos asociados
+            const itemsResponse = await fetch('https://psyauluoyjvrscijcafn.supabase.co/rest/v1/orden_items', {
+              method: 'POST',
+              headers: {
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU',
+                'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify(productos.map(producto => ({
+                orden_pedido_id: ordenPedidoId,
+                articulo_id: producto.id,
+                cantidad: producto.cantidad,
+                comentario: producto.comentario || '',
+                validado: '0'
+              })))
+            });
+  
+            if (!itemsResponse.ok) {
+              throw new Error(`HTTP error! Status: ${itemsResponse.status}`);
+            }
+  
             console.log('Datos enviados correctamente');
             setProductos([]);
-            localStorage.removeItem('productos'); // Limpiar productos guardados
+            localStorage.removeItem('productos');
             navigate('/IndexPage');
           } else {
-            console.error('Error al enviar los datos');
+            console.log('Datos de la respuesta POST no están completos.');
           }
         } catch (error) {
-          console.error('Error al enviar la solicitud:', error);
+          console.error('Error al enviar o recuperar los datos:', error);
+          if (error instanceof SyntaxError) {
+            console.error('La respuesta no es un JSON válido');
+          }
         }
       }
     });
   };
   
+  
+  
+  
+  
+  
+  
+  
 
   const getDatos = async () => {
     try {
-      const response = await fetch(`${Api}`);
+      const response = await fetch('https://psyauluoyjvrscijcafn.supabase.co/rest/v1/numped?select=*', {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU',
+          'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU',
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
       const data = await response.json();
-      setDatos(data.orden);
+      setDatos(data); // Ajusta esto según la estructura de datos que esperas
+  
     } catch (error) {
-      console.error(error);
+      console.error('Error fetching data:', error);
     }
   };
-
+  
   useEffect(() => {
     getDatos();
   }, [getNextNumeroPed]);
+  
+  
 
   return (
     <form onSubmit={handleSubmit}>
@@ -220,7 +289,7 @@ const Formulario = () => {
               <img src={logo2} alt="garantia" width={50} className='rounded mx-1'/>
             </div>
             <div>
-              <h3 className="py-2 text-center">Ingrese los Datos de la Solicitud de Reposición </h3>
+              <h3 className="py-2 text-center">Solicitud de Reposición Estándar </h3>
             </div>
             <div>
               <img src={logo2} alt="garantia" width={50} />
@@ -234,20 +303,20 @@ const Formulario = () => {
                 style={{ "width": "300px" }}
                 className="form-control mx-2"
                 type="text"
-                defaultValue={`${datosUsuario.user.nombre} `}
+                defaultValue={`${datosUsuario.nombre} `}
                 aria-label="Disabled input example"
                 disabled
                 readOnly
               />
             </div>
-            {datos && datos.map((articulo, index) => (
+            {datos && datos.map((data, index) => (
               <div className='col-sm-12 col-md-6 col-lg-6 col-xl-6' key={index}>
                 <label htmlFor="staticEmail" className=" col-form-label text-center fw-bolder">Nº de Solicitud:</label>
                 <input
                   style={{ "width": "300px" }}
                   className="form-control mx-2"
                   type="text"
-                  value={parseInt(articulo.numero_ped) + 1} // Suma uno al valor de articulo.numero_ped
+                  value={parseInt(data.numero_ped) + 1} // Suma uno al valor de articulo.numero_ped
                   placeholder="Ingrese Numero de Solicitud"
                   disabled // Hacer el campo no editable
                 />

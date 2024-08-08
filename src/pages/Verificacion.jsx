@@ -55,7 +55,7 @@ const Verificacion = () => {
             id: item.id,
             validado: item.validado,
            // fecha_validado: item.validado ? fecha : null,
-            user_validado: datosUsuario.user.id
+            user_validado: datosUsuario.id
           }))
         };
 
@@ -103,7 +103,7 @@ const Verificacion = () => {
       <p className="card-text  mx-2"><strong>Motivo:</strong> {ordenPedido.descripcion}</p>
     </div>
     <div className='col-md-3 col-lg-3'>
-      <p className="card-text  mx-2"><strong>Solicitante:</strong> {ordenPedido.user.nombre}</p>
+      <p className="card-text  mx-2"><strong>Solicitante:</strong> {ordenPedido.nombre}</p>
     </div>
     <div className='col-md-3 col-lg-3'>
       <p className="card-text  mx-2"><strong>Creado:</strong> {new Date(ordenPedido.created).toLocaleString()}</p>
