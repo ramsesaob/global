@@ -24,7 +24,7 @@ const ExportView1 = ({ ordenPedido, id }) => {
       ws_data.push([
         ordenPedido.numero_ped, // ParentKey / DocNum
         '',        // LineNum
-        item.articulo.codigo, // ItemCode
+        item.articulos.codigo, // ItemCode
         '', // ItemDescription / Dscription
         item.cantidad,    // Quantity
         '', // ShipDate
@@ -150,7 +150,7 @@ const ExportView1 = ({ ordenPedido, id }) => {
 
   return (
     <button className="btn btn-success mx-2" onClick={exportToExcel}>
-      <i class='bx bxs-file-txt bx-md'></i> 1
+      <i className='bx bxs-file-txt bx-md'></i> 1
     </button>
   );
 };

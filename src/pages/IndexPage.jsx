@@ -26,7 +26,7 @@ const IndexPage = () => {
     'sucursal': { value: null, matchMode: 'contains' }, 
     'numero_ped': { value: null, matchMode: 'contains' }, 
     'created': { value: null, matchMode: 'contains' }, 
-    'Status_aprobada': { value: null, matchMode: 'contains' }, 
+    'status_aprobado': { value: null, matchMode: 'contains' }, 
   });
   const [showFilters, setShowFilters] = useState(false);
   
@@ -40,10 +40,10 @@ const IndexPage = () => {
   useEffect(() => {  
     const fetchAndFilterOrdenPedidos = async () => {  
       try {  
-        const response = await fetch(`https://psyauluoyjvrscijcafn.supabase.co/rest/v1/page?select=*`, {
+        const response = await fetch(`https://psyauluoyjvrscijcafn.supabase.co/rest/v1/page?select=*&order=id.desc`, {
           headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU', // Usa tu clave API correcta aquí
-            'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU', // Usa el formato correcto para el token de autorización
+            'apikey': supabaseKey, // Usa tu clave API correcta aquí
+            'Authorization': supabaseKey,
             'Content-Type': 'application/json'
           }
         });
@@ -78,47 +78,78 @@ const IndexPage = () => {
     fetchAndFilterOrdenPedidos();  
   }, [datosUsuario]);  
   
-
-
-
-  const handleAnularPedido = async (id) => {  
-    Swal.fire({  
-      title: '¿Estás seguro?',  
-      text: '¡No podrás revertir esto!',  
-      icon: 'warning',  
-      showCancelButton: true,  
-      confirmButtonColor: '#3085d6',  
-      cancelButtonColor: '#d33',  
-      confirmButtonText: 'Sí, anularlo'  
-    }).then(async (result) => {  
-      if (result.isConfirmed) {  
-        try {  
-          const { data, error } = await supabase  
-            .from('orden_pedidos') // Nombre de tu tabla en Supabase  
-            .update({ anulada: 0, fecha_anulada: new Date().toISOString() }) // Campos a actualizar  
-            .eq('id', id); // Condición para identificar el registro que deseas modificar  
+  useEffect(() => {
+    const role = datosUsuario.role;
+    const filteredPedidos = ordenPedidos.filter(orden => {
+      if (role === 'admin') {
+        return true;
+      } else if (role === 'user1') {
+        return orden.user_id === datosUsuario.id;
+      } else if (role === 'user2') {
+        return true;
+      } else if (role === 'user3') {
+        return orden.user_id === datosUsuario.id;
+      } else {
+        return orden.user_id === datosUsuario.id;
+      }
+    });
   
-          if (error) {  
-            throw error; // Lanza un error si hay problema con Supabase  
-          }  
+    setFilteredOrdenPedidos(filteredPedidos);
+  }, [ordenPedidos, datosUsuario]);
   
-          // Si la actualización es exitosa:  
-          if (data) {  
-            setOrdenPedidos(prevOrdenPedidos =>  
-              prevOrdenPedidos.map(pedido =>  
-                pedido.id === id ? { ...pedido, anulada: 0, fecha_anulada: new Date().toISOString() } : pedido  
-              )  
-            );  
-            Swal.fire('Anulado', 'El pedido ha sido anulado correctamente', 'success');  
-            setTableKey(prevKey => prevKey + 1); // Forzar la actualización del DataTable  
-          }  
-        } catch (error) {  
-          console.error('Error al anular el pedido:', error);  
-          Swal.fire('Error', 'No se pudo anular el pedido', 'error');  
-        }  
-      }  
-    });  
+
+
+  const handleAnularPedido = async (id) => {
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¡No podrás revertir esto!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, anularlo'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          // Realiza la actualización en Supabase
+          const { data, error } = await supabase
+            .from('orden_pedidos')
+            .update({ anulada: 0, fecha_anulada: new Date().toISOString() })
+            .eq('id', id)
+            .select('*')
+            .single();
+  
+          if (error) {
+            throw error; // Lanza un error si hay problemas con Supabase
+          }
+  
+       //   console.log('Anulación exitosa:', data);
+  
+          // Verifica si data contiene resultados
+          if (data) {
+            // Actualiza el estado local si la actualización es exitosa
+            setOrdenPedidos(prevOrdenPedidos => {
+              const updatedPedidos = prevOrdenPedidos.map(pedido =>
+                pedido.id === id ? { ...pedido, anulada: 0, fecha_anulada: new Date().toISOString() } : pedido
+              );
+             // console.log('Estado actualizado:', updatedPedidos);
+              return updatedPedidos;
+            });
+            
+            Swal.fire('Anulado', 'El pedido ha sido anulado correctamente', 'success');
+            setTableKey(prevKey => prevKey + 1); // Forza la actualización del DataTable
+          } else {
+            throw new Error('No se encontraron datos actualizados');
+          }
+        } catch (error) {
+          console.error('Error al anular el pedido:', error);
+          Swal.fire('Error', 'No se pudo anular el pedido', 'error');
+        }
+      }
+    });
   };
+  
+  
 
   const actionTemplate = (rowData) => (
     <div>
@@ -132,7 +163,7 @@ const IndexPage = () => {
         <button className='btn btn-danger btn-sm' onClick={() => handleAnularPedido(rowData.id)}>Anular</button>
       )}
      
-      {((rowData.Status_aprobada != 'Procesada' )  && (rowData.anulada != 0)   && (datosUsuario.role == 'admin' || datosUsuario.role == 'user2')) && (
+      {((rowData.status_aprobado != 'Procesada' )  && (rowData.anulada != 0)   && (datosUsuario.role == 'admin' || datosUsuario.role == 'user2')) && (
         <button className='btn btn-info btn-sm mx-2'>
           <Link style={{ textDecoration: 'none', color: 'white' }} to={`/Verificacion/${rowData.id}`}>
             <span>Verificar</span>
@@ -159,12 +190,12 @@ const IndexPage = () => {
   };
 
   const rowClass = (rowData) => {
-    if (rowData.Status_aprobada == 'Procesada') {
+    if (rowData.status_aprobado === 'Procesada') {
       return 'table-validada'; // Aplica clase 'table-validada' si Status_aprobada es 'Validada'
-    } else if (rowData.Status_aprobada == 'Parcialmente') {
+    } else if (rowData.status_aprobado === 'Parcialmente') {
       return 'table-semi'; // Aplica clase 'table-semi' si Status_aprobada es 'Parcialmente'
     } 
-    else if (rowData.Status_aprobada == 'Pendiente') {
+    else if (rowData.status_aprobado === 'Pendiente') {
       return 'table-NoValidada'; // Aplica clase 'table-NoValidada' si Status_aprobada es 'Pendiente'
     } else {
       return ''; // Retorna una cadena vacía si no se cumple ninguna condición
@@ -235,7 +266,7 @@ const IndexPage = () => {
         <Column field="numero_ped" header="Numero de pedido" sortable headerStyle={headerStyle} bodyStyle={{ textAlign: 'center', fontSize: '0.8rem' }} filter filterPlaceholder="Buscar por pedido" />
         <Column field="created" header="Fecha de pedido" sortable headerStyle={headerStyle} bodyStyle={{ textAlign: 'center', fontSize: '0.8rem' }} body={formatDate} filter filterPlaceholder="Buscar por Fecha" />
         <Column field="sucursal" header="Sucursal" sortable headerStyle={headerStyle} bodyStyle={{ textAlign: 'center', fontSize: '0.8rem' }} filter filterPlaceholder="Buscar por Sucursal" />
-        <Column field="Status_aprobada" header="Status" sortable headerStyle={headerStyle} bodyStyle={{ textAlign: 'center', fontSize: '0.8rem' }} bodyClassName={rowClass} filter filterPlaceholder="Buscar por Status" />
+        <Column field="status_aprobado" header="Status" sortable headerStyle={headerStyle} bodyStyle={{ textAlign: 'center', fontSize: '0.8rem' }} bodyClassName={rowClass} filter filterPlaceholder="Buscar por Status" />
         <Column field="anulada" header="Activa" body={anuladaTemplate} sortable headerStyle={headerStyle} bodyStyle={{ textAlign: 'center', fontSize: '0.8rem' }} />
         <Column field="tipo" header="Tipo" body={tipoTemplate} sortable headerStyle={headerStyle} bodyStyle={{ textAlign: 'center', fontSize: '0.8rem' }} />
         <Column header="Acciones" body={actionTemplate} headerStyle={headerStyle} bodyStyle={{ textAlign: 'center', fontSize: '0.8rem' }} />

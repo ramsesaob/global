@@ -53,7 +53,7 @@ const ExportView2 = ({ ordenPedido }) => {
       '', // Printed
       formatDate(ordenPedido.created), // DocDate
       formatDate(ordenPedido.created), // DocDueDate
-      ordenPedido.user.sucursale.cliente, // CardCode (Cliente)
+      ordenPedido.users.sucursales.cliente, // CardCode (Cliente)
       '', // CardName
       '', // Address
       'CH2401024', // NumAtCard
@@ -123,7 +123,7 @@ const ExportView2 = ({ ordenPedido }) => {
       '', // PayToBankCode
       '', // PayToBankAccountNo
       '', // PayToBankBranch
-      ordenPedido.user.sucursale.numero_id, // BPL_IDAssignedToInvoice (Número de sucursal)
+      ordenPedido.users.sucursales.numero_id, // BPL_IDAssignedToInvoice (Número de sucursal)
       '', // DownPayment
       '', // ReserveInvoice
       '', // LanguageCode

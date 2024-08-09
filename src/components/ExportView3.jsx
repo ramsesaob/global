@@ -16,15 +16,15 @@ const ExportView3 = ({ ordenPedido, id }) => {
     // Crear manualmente las filas fijas
     const ws_data = [
         ['Orden de Pedido', ordenPedido.numero_ped],
-        ['Sucursal', ordenPedido.user.sucursale ? ordenPedido.user.sucursale.descripcion : 'Sin sucursal especificada'],
+        ['Sucursal', ordenPedido.users.sucursales ? ordenPedido.users.sucursales.descripcion : 'Sin sucursal especificada'],
         ['Code', 'Description', 'Quantity']
       ];
       
       // Agregar los datos debajo de las filas fijas
       ordenPedido.orden_items.forEach((item, index) => {
         ws_data.push([
-          item.articulo.codigo,
-          item.articulo.descripcion,
+          item.articulos.codigo,
+          item.articulos.descripcion,
           item.cantidad
         ]);
       });

@@ -78,7 +78,7 @@ const Formulario = () => {
       }
   
       const data = await response.json();
-      console.log('Datos recibidos:', data); // Imprime los datos para depuración
+     // console.log('Datos recibidos:', data); // Imprime los datos para depuración
   
       if (!data || data.length === 0) {
         throw new Error("Descripción no encontrada");
@@ -191,7 +191,8 @@ const Formulario = () => {
               descripcion: motivoSeleccionado,
               anulada: 1,
               tipo: 'P',
-              status_aprobado: 'Pendiente' 
+              status_aprobado: 'Pendiente' ,
+              created: new Date().toISOString().slice(0, 19).replace('T', ' '),
             })
           });
   
@@ -245,13 +246,6 @@ const Formulario = () => {
   };
   
   
-  
-  
-  
-  
-  
-  
-
   const getDatos = async () => {
     try {
       const response = await fetch('https://psyauluoyjvrscijcafn.supabase.co/rest/v1/numped?select=*', {

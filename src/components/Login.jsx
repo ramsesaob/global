@@ -43,7 +43,7 @@ const Login = ({ show, handleClose }) => {
 
         if (user && bcrypt.compareSync(contrasenia, user.password)) {
             // Autenticación exitosa
-            console.log('Usuario autenticado:', user);
+          
             setDatosCorrectos(true);
             setValidado(true);
             setDatosUsuario(user);

@@ -16,24 +16,28 @@ const ViewPage = () => {
   useEffect(() => {
     const getDatos = async () => {
       try {
-        const response = await fetch(`http://192.168.0.107/ped2/OrdenPedidos/view/${id}.json`);
+        const response = await fetch(`https://psyauluoyjvrscijcafn.supabase.co/rest/v1/orden_pedidos?id=eq.${id}&select=id,numero_ped,user_id,descripcion,enviada,status_aprobado,aprobada,created,modified,anulada,fecha_anulada,tipo,users(id,username,role,status,nombre,departamento,cargo,cedula,created,modified,sucursale_id,sucursales(id,codigo,descripcion,nombre,ciudad,cliente,numero_id,direccion)),orden_items(id,articulo_id,created,modified,orden_pedido_id,comentario,cantidad,validado,fecha_validado,user_validado,articulos(id,departamento,categoria,codigo,descripcion,cantidad,cod_departamento,unidad_compra,empaque))`, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU',
+            'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzeWF1bHVveWp2cnNjaWpjYWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNTc1NDksImV4cCI6MjAzODYzMzU0OX0.aCF16iTqR2ioEMOA2Dupknnrr8cQJjUDEO7Lnwi75FU',
+          },
+        });
         const data = await response.json();
-        setOrdenPedido(data.ordenPedido);
+        setOrdenPedido(data[0]);
 
         // Inicializar DataTable después de obtener los datos
-        // Check if DataTable is already initialized on the table before reinitializing
-          if (!$.fn.DataTable.isDataTable('#table_id')) {
-            $('#table_id').DataTable({
-                responsive: true,
-                paging: false,
-                info: false,
-                searching: false,
-                ordering: false
-            });
-          }
+        if (!$.fn.DataTable.isDataTable('#table_id')) {
+          $('#table_id').DataTable({
+            responsive: true,
+            paging: false,
+            info: false,
+            searching: false,
+            ordering: false,
+          });
+        }
 
-      } catch (error) {
-       // console.error(error);
+      } catch (error) {  
+      //  console.error('Error fetching data:', error);  
       }
     };
 
@@ -44,52 +48,61 @@ const ViewPage = () => {
     return <div className="text-center">Loading...</div>; // Muestra un mensaje de carga mientras se obtienen los datos
   }
 
-    const exportToPDF = () => {
-          const unit = 'pt';
-          const size = 'A4'; // Use A1, A2, A3 or A4
-          const orientation = 'portrait'; // portrait or landscape
-          const marginLeft = 40;
-          const doc = new jsPDF(orientation, unit, size);
-
-          doc.setFontSize(15);
-          const title = `Orden Pedido #${ordenPedido.numero_ped}`;
-        
-          const motivo = `Motivo: ${ordenPedido.descripcion}`;
-          const solicitud = `Fecha de Solicitud: ${new Date(ordenPedido.created).toLocaleString('es-ES', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric'
-          
-        })}`;
-          const solicitante = `Solicitante: ${ordenPedido.nombre}`;
-        
-          const headers = [['ID', 'Departamento', 'Categoría', 'Código', 'Descripción', 'Cantidad']];
-          const data = ordenPedido.orden_items.map(item => [
-            item.articulo.id,
-            item.articulo.departamento,
-            item.articulo.categoria,
-            item.articulo.codigo,
-            item.articulo.descripcion,
-            item.cantidad
-          ]);
-
-          let content = {
-            startY: 140,
-            head: headers,
-            body: data
-          };
-
-          const marginTop = 40; // Margin space above the text
-      const marginBottom = 10; // Margin space below the text
-
-          doc.text(title, doc.internal.pageSize.getWidth() / 2, marginTop, { align: 'center' });
-          doc.text(motivo, marginLeft, marginTop + 20, { align: 'left' });
-          doc.text(solicitud, marginLeft, marginTop + 40, { align: 'left' });
-          doc.text(solicitante, marginLeft, marginTop + 60, { align: 'left' });
-              doc.autoTable(content);
-              doc.save(`OrdenPedido_${ordenPedido.numero_ped}.pdf`);
-        };
-
+  const exportToPDF = () => {
+    const unit = 'pt';
+    const size = 'A4'; // Use A1, A2, A3 or A4
+    const orientation = 'portrait'; // portrait or landscape
+    const marginLeft = 40;
+    const doc = new jsPDF(orientation, unit, size);
+    const getMotivoDescripcion = (descripcion) => {
+      if (descripcion === '1') {
+        return 'Alta Rotación';
+      } else if (descripcion === '2') {
+        return 'Ventas al mayor';
+      } else if (descripcion === '3') {
+        return 'Ventas de Clientes Especiales';
+      } else {
+        return 'Descripción desconocida';
+      }
+    };
+    doc.setFontSize(15);
+    const title = `Orden Pedido #${ordenPedido.numero_ped}`;
+    const motivo = `Motivo: ${getMotivoDescripcion(ordenPedido.descripcion)}`;
+    const solicitud = `Fecha de Solicitud: ${ordenPedido.created ? new Date(ordenPedido.created).toLocaleString('es-ES', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric'
+    }) : 'No disponible'}`;
+    const solicitante = `Solicitante: ${ordenPedido.users.nombre}`;
+    const status_aprobado = `Status: ${ordenPedido.status_aprobado}`;
+  
+    const headers = [['ID', 'Departamento', 'Categoría', 'Código', 'Descripción', 'Cantidad']];
+    const data = ordenPedido.orden_items.map(item => [
+      item.articulos?.id || 'No disponible',
+      item.articulos?.departamento || 'No disponible',
+      item.articulos?.categoria || 'No disponible',
+      item.articulos?.codigo || 'No disponible',
+      item.articulos?.descripcion || 'No disponible',
+      item.cantidad || 'No disponible'
+    ]);
+  
+    let content = {
+      startY: 140,
+      head: headers,
+      body: data
+    };
+  
+    const marginTop = 40; // Margin space above the text
+  
+    doc.text(title, doc.internal.pageSize.getWidth() / 2, marginTop, { align: 'center' });
+    doc.text(motivo, marginLeft, marginTop + 20, { align: 'left' });
+    doc.text(solicitud, marginLeft, marginTop + 40, { align: 'left' });
+    doc.text(solicitante, marginLeft, marginTop + 60, { align: 'left' });
+    doc.text(status_aprobado, marginLeft, marginTop + 80, { align: 'left' });
+    doc.autoTable(content);
+    doc.save(`OrdenPedido_${ordenPedido.numero_ped}.pdf`);
+  };
+  
        
 
   const printTable = () => {
@@ -136,11 +149,11 @@ const ViewPage = () => {
                         </p>
               </div>
               <div className='col-lg-6 py-1'>
-              <p className="card-text"><strong>Solicitante:</strong> {ordenPedido.nombre}</p>
+              <p className="card-text"><strong>Solicitante:</strong> {ordenPedido.users.nombre}</p>
               </div>
              
               <div className='col-lg-6 py-1'>
-              <p className="card-text"><strong>Status:</strong> {ordenPedido.Status_aprobada}</p>
+              <p className="card-text"><strong>Status:</strong> {ordenPedido.status_aprobado}</p>
               </div>
               <div className='col-lg-6'>
               <p className="card-text"><strong>Tipo: </strong>{ordenPedido.tipo === 'P' ? ('Estándar') : ('Navidad')} </p> 
@@ -160,14 +173,17 @@ const ViewPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {ordenPedido.orden_items.map(item => (
-                      <tr key={item.id} className={item.validado == 1 ? 'table-success' :  'table-danger'}>
-                        <td>{item.articulo.codigo}</td>
-                        <td>{item.articulo.descripcion}</td>
-                        <td>{item.cantidad}</td>
-                      </tr>
+                    {ordenPedido.orden_items && ordenPedido.orden_items.map(item => (
+                      item.articulos ? (
+                        <tr key={item.id} className={item.validado === 1 ? 'table-success' : 'table-danger'}>
+                          <td>{item.articulos.codigo}</td>
+                          <td>{item.articulos.descripcion}</td>
+                          <td>{item.cantidad}</td>
+                        </tr>
+                      ) : null
                     ))}
                   </tbody>
+
                 </table>
               </div>
             </div>
